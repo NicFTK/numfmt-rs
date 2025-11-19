@@ -61,6 +61,30 @@ pub fn run_part(
     opts: &FormatterOptions,
     locale: &Locale,
 ) -> Result<String, FormatterError> {
+    if let Some(db_num_type) = part.db_num {
+        if part.date.is_empty() {
+            if let Some(num) = match value {
+                RunValue::Number(n) => Some(n),
+                RunValue::BigInt(big) => big.to_f64(),
+                RunValue::Text(_) => None,
+            } {
+                let res = match db_num_type {
+                    crate::parser::model::DbNumType::TradSimp => {
+                        super::chinese::to_chinese_numeral(num, false, true)
+                    }
+                    crate::parser::model::DbNumType::TradFormal => {
+                        super::chinese::to_chinese_numeral(num, true, true)
+                    }
+                    crate::parser::model::DbNumType::Simp => {
+                        super::chinese::to_chinese_digits(num, false)
+                    }
+                    crate::parser::model::DbNumType::FullWidth => super::chinese::to_full_width(num),
+                };
+                return Ok(res);
+            }
+        }
+    }
+
     let mut numeric_value = match value {
         RunValue::Number(n) => Some(n),
         RunValue::BigInt(big) => {
@@ -752,6 +776,43 @@ fn append_date_token(
     time: f64,
     numeric_value: f64,
 ) {
+    if let Some(db_num_type) = part.db_num {
+        let is_formal = matches!(
+            db_num_type,
+            crate::parser::model::DbNumType::TradFormal
+        );
+        let y = year
+            .to_string()
+            .chars()
+            .map(|c| {
+                let digit = c.to_digit(10).unwrap() as f64;
+                match db_num_type {
+                    crate::parser::model::DbNumType::Simp => super::chinese::to_chinese_digits(digit, false),
+                    crate::parser::model::DbNumType::FullWidth => super::chinese::to_full_width(digit),
+                    _ => super::chinese::to_chinese_numeral(digit, is_formal, false),
+                }
+            })
+            .collect::<String>();
+        let m = match db_num_type {
+            crate::parser::model::DbNumType::TradFormal => super::chinese::to_chinese_numeral(month as f64, true, true),
+            _ => super::chinese::to_chinese_numeral(month as f64, false, false),
+        };
+        let d = match db_num_type {
+            crate::parser::model::DbNumType::TradFormal => super::chinese::to_chinese_numeral(day as f64, true, true),
+            _ => super::chinese::to_chinese_numeral(day as f64, false, false),
+        };
+        match token.kind {
+            DateTokenKind::Year | DateTokenKind::YearShort => output.push_str(&y),
+            DateTokenKind::Month | DateTokenKind::MonthName | DateTokenKind::MonthNameShort => {
+                output.push_str(&m)
+            }
+            DateTokenKind::Day | DateTokenKind::Weekday | DateTokenKind::WeekdayShort => {
+                output.push_str(&d)
+            }
+            _ => {}
+        }
+        return;
+    }
     match token.kind {
         DateTokenKind::Year => {
             if year < 0 {

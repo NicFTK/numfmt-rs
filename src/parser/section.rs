@@ -4,8 +4,8 @@ use crate::constants::{DateUnits, EPOCH_1317};
 
 use super::error::ParseError;
 use super::model::{
-    Color, DateToken, DateTokenKind, NumberPart, NumberToken, Section, SectionToken, StringRule,
-    StringToken, Token, TokenKind, TokenValue,
+    Color, DateToken, DateTokenKind, DbNumType, NumberPart, NumberToken, Section, SectionToken,
+    StringRule, StringToken, Token, TokenKind, TokenValue,
 };
 
 pub struct SectionParseResult {
@@ -237,7 +237,21 @@ pub fn parse_format_section(input_tokens: &[Token]) -> Result<SectionParseResult
             TokenKind::Skip | TokenKind::Fill => {
                 tokens.push(SectionToken::Token(token.clone()));
             }
-            TokenKind::DbNum | TokenKind::NatNum => {
+            TokenKind::DbNum => {
+                if let Some(value) = token_text(token) {
+                    let db_type = match value.to_ascii_lowercase().as_str() {
+                        "dbnum1" => Some(DbNumType::TradSimp),
+                        "dbnum2" => Some(DbNumType::TradFormal),
+                        "dbnum3" => Some(DbNumType::Simp),
+                        "dbnum4" => Some(DbNumType::FullWidth),
+                        _ => None,
+                    };
+                    if db_type.is_some() {
+                        section.db_num = db_type;
+                    }
+                }
+            }
+            TokenKind::NatNum => {
                 // unsupported but tolerated
             }
             TokenKind::Error => {

@@ -115,6 +115,14 @@ pub enum Color {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum DbNumType {
+    TradSimp,   // DBNum1
+    TradFormal, // DBNum2
+    Simp,       // DBNum3
+    FullWidth,  // DBNum4
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum NumberPart {
     Integer,
     Fraction,
@@ -267,6 +275,7 @@ pub struct Section {
     pub condition: Option<Condition>,
     pub color: Option<Color>,
     pub locale: Option<String>,
+    pub db_num: Option<DbNumType>,
     pub parens: bool,
     pub generated: bool,
     pub pattern: String,
@@ -316,6 +325,7 @@ impl Section {
             condition: None,
             color: None,
             locale: None,
+            db_num: None,
             parens: false,
             generated: false,
             pattern: String::new(),

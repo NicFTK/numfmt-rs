@@ -10,6 +10,7 @@ use crate::parser::parse_pattern;
 use num_traits::{Signed, ToPrimitive};
 
 pub mod error;
+mod chinese;
 mod general;
 mod locale;
 mod math;
